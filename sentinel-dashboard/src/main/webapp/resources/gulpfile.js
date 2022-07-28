@@ -60,75 +60,96 @@ const JS_APP = [
   'app/scripts/services/gateway/flow_service.js',
 ];
 
-gulp.task('lib', function () {
+gulp.task('lib', function (cb) {
   gulp.src(JS_LIBS)
     .pipe(plugins.concat('app.vendor.js'))
     .pipe(gulp.dest(app.devPath + 'js'))
     .pipe(plugins.uglify())
     .pipe(gulp.dest(app.prdPath + 'js'))
     .pipe(plugins.connect.reload());
+  console.log('lib...');
+  cb();
 });
 
 /*
 * css任务
-* 在src下创建style文件夹，里面存放less文件。 
+* 在src下创建style文件夹，里面存放less文件。
 */
-gulp.task('css', function () {
+gulp.task('css', function (cb) {
   gulp.src(CSS_APP)
     .pipe(plugins.concat('app.css'))
     .pipe(gulp.dest(app.devPath + 'css'))
     .pipe(plugins.cssmin())
     .pipe(gulp.dest(app.prdPath + 'css'))
     .pipe(plugins.connect.reload());
+  console.log('css...');
+  cb();
 });
 
 /*
 * js任务
 * 在src目录下创建script文件夹，里面存放所有的js文件
 */
-gulp.task('js', function () {
+gulp.task('js', function (cb) {
   gulp.src(JS_APP)
     .pipe(plugins.concat('app.js'))
     .pipe(gulp.dest(app.devPath + 'js'))
     .pipe(plugins.uglify())
     .pipe(gulp.dest(app.prdPath + 'js'))
     .pipe(plugins.connect.reload());
+  console.log('js...');
+  cb();
 });
 
 /*
 * js任务
 * 在src目录下创建script文件夹，里面存放所有的js文件
 */
-gulp.task('jshint', function () {
+gulp.task('jshint', function (cb) {
   gulp.src(JS_APP)
     .pipe(plugins.jshint())
     .pipe(plugins.jshint.reporter());
+  console.log('jshint...');
+  cb();
 });
 
 // 每次发布的时候，可能需要把之前目录内的内容清除，避免旧的文件对新的容有所影响。 需要在每次发布前删除dist和build目录
-gulp.task('clean', function () {
+gulp.task('clean', function (cb) {
   gulp.src([app.devPath, app.prdPath])
     .pipe(plugins.clean());
+  console.log('clean...');
+  cb();
 });
 
+
 // 总任务
-gulp.task('build', ['clean', 'jshint', 'lib', 'js', 'css']);
+gulp.task('build', gulp.series('clean', 'jshint', 'lib', 'js', 'css',function (cb) {
+  console.log('build...');
+  cb();
+}));
 
 // 服务
-gulp.task('serve', ['build'], function () {
+gulp.task('serve', gulp.series('build',function (cb) {
   plugins.connect.server({ //启动一个服务器
     root: [app.devPath], // 服务器从哪个路径开始读取，默认从开发路径读取
     livereload: true, // 自动刷新
     port: 1234
   });
+  // 监听
+  gulp.watch(app.srcPath + '**/*.js', gulp.series('js'));
+  gulp.watch(app.srcPath + '**/*.css', gulp.series('css'));
   // 打开浏览器
   setTimeout(() => {
-    open('http://localhost:8080/index_dev.htm')
+    open('http://localhost:8081/index_dev.htm');
+    console.log('open index_dev.htm...');
+    cb();
   }, 200);
-  // 监听
-  gulp.watch(app.srcPath + '**/*.js', ['js']);
-  gulp.watch(app.srcPath + '**/*.css', ['css']);
-});
+  console.log('serve...');
+}));
+
 
 // 定义default任务
-gulp.task('default', ['serve']);
+gulp.task('default', gulp.series('serve', function (cb) {
+  console.log('default...');
+  cb();
+}));

@@ -26,6 +26,7 @@ import com.alibaba.csp.sentinel.dashboard.domain.vo.gateway.api.AddApiReqVo;
 import com.alibaba.csp.sentinel.dashboard.domain.vo.gateway.api.ApiPredicateItemVo;
 import com.alibaba.csp.sentinel.dashboard.domain.vo.gateway.api.UpdateApiReqVo;
 import com.alibaba.csp.sentinel.dashboard.repository.gateway.InMemApiDefinitionStore;
+import com.alibaba.csp.sentinel.dashboard.repository.gateway.NacosApiDefinitionStoreAdapter;
 import com.alibaba.csp.sentinel.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,7 @@ public class GatewayApiController {
     private final Logger logger = LoggerFactory.getLogger(GatewayApiController.class);
 
     @Autowired
-    private InMemApiDefinitionStore repository;
+    private NacosApiDefinitionStoreAdapter repository;
 
     @Autowired
     private SentinelApiClient sentinelApiClient;
@@ -156,6 +157,7 @@ public class GatewayApiController {
             return Result.ofThrowable(-1, throwable);
         }
 
+
         if (!publishApis(app, ip, port)) {
             logger.warn("publish gateway apis fail after add");
         }
@@ -254,7 +256,14 @@ public class GatewayApiController {
     }
 
     private boolean publishApis(String app, String ip, Integer port) {
-        List<ApiDefinitionEntity> apis = repository.findAllByMachine(MachineInfo.of(app, ip, port));
-        return sentinelApiClient.modifyApis(app, ip, port, apis);
+        // fixed by xiongying,关闭直接调微服务sentinel client实例改数据,各sentinel client会通过nacos监听获取到最新的配置信息，而不是每次修改1个sentinel client实例
+        try {
+            Thread.sleep(300); // wait sentinel client recv and update local config
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return true;
+//        List<ApiDefinitionEntity> apis = repository.findAllByMachine(MachineInfo.of(app, ip, port));
+//        return sentinelApiClient.modifyApis(app, ip, port, apis);
     }
 }
